@@ -1,6 +1,8 @@
 import React, { useState, useRef, Suspense } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
 import OBJModelLoader from './OBJModelLoader';
+import * as THREE from 'three';
 // Define Product interface locally to avoid import issues
 interface Product {
   id: number;
@@ -21,10 +23,20 @@ import { Link } from 'wouter';
 import { MODEL_PATHS, MODEL_SCALES, MODEL_POSITIONS, MODEL_ROTATIONS } from '../../lib/3dAssets';
 
 // Simple loading indicator
+// Simple loading indicator with a spinning cube
 function Loader() {
+  const ref = useRef<THREE.Mesh>(null);
+  
+  useFrame(() => {
+    if (ref.current) {
+      ref.current.rotation.x += 0.01;
+      ref.current.rotation.y += 0.01;
+    }
+  });
+  
   return (
-    <mesh>
-      <sphereGeometry args={[0.5, 16, 16]} />
+    <mesh ref={ref}>
+      <boxGeometry args={[1, 1, 1]} />
       <meshStandardMaterial color="white" />
     </mesh>
   );
@@ -126,6 +138,11 @@ const ProductCarousel3D: React.FC<ProductCarousel3DProps> = ({
                     color={Array.isArray(currentProduct?.colors) && currentProduct?.colors.length > 0 
                       ? currentProduct.colors[0] 
                       : "#ffffff"}
+                  />
+                  <OrbitControls 
+                    enableZoom={true}
+                    enablePan={false}
+                    enableRotate={true}
                   />
                 </Suspense>
               </Canvas>

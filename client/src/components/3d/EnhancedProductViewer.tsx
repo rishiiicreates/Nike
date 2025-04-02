@@ -1,16 +1,49 @@
-import React, { useState, Suspense, useEffect } from 'react';
-import { Canvas } from '@react-three/fiber';
+import React, { useState, Suspense, useRef } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import OBJModelLoader from './OBJModelLoader';
+import * as THREE from 'three';
 import { MODEL_PATHS } from '../../lib/3dAssets';
 
-// Simple loading indicator
+// Simple loading indicator with a spinning cube
 function Loader() {
+  const ref = useRef<THREE.Mesh>(null);
+  
+  useFrame(() => {
+    if (ref.current) {
+      ref.current.rotation.x += 0.01;
+      ref.current.rotation.y += 0.01;
+    }
+  });
+  
   return (
-    <mesh>
-      <sphereGeometry args={[0.5, 16, 16]} />
+    <mesh ref={ref}>
+      <boxGeometry args={[1, 1, 1]} />
       <meshStandardMaterial color="white" />
     </mesh>
+  );
+}
+
+// Simple shoe box component
+function ShoeBox({ color }: { color: string }) {
+  const boxRef = useRef<THREE.Group>(null);
+  
+  useFrame(() => {
+    if (boxRef.current) {
+      boxRef.current.rotation.y += 0.01;
+    }
+  });
+  
+  return (
+    <group ref={boxRef}>
+      <mesh position={[0, 0, 0]}>
+        <boxGeometry args={[2, 0.5, 1]} />
+        <meshStandardMaterial color={color} />
+      </mesh>
+      <mesh position={[0.5, 0.3, 0]}>
+        <boxGeometry args={[1, 0.2, 1]} />
+        <meshStandardMaterial color={color} />
+      </mesh>
+    </group>
   );
 }
 
@@ -28,43 +61,20 @@ export const EnhancedProductViewer: React.FC<EnhancedProductViewerProps> = ({
   className = '',
 }) => {
   const [currentColor, setCurrentColor] = useState(colors[0]);
-  const [hovered, setHovered] = useState(false);
-  
-  // Determine which 3D model to use based on product name
-  const getModelPath = () => {
-    const modelKey = Object.keys(MODEL_PATHS).find(key => 
-      productName.toLowerCase().includes(key.toLowerCase())
-    );
-    
-    return modelKey ? MODEL_PATHS[modelKey as keyof typeof MODEL_PATHS] : MODEL_PATHS["Default"];
-  };
-
-  const modelPath = getModelPath();
-  
-  useEffect(() => {
-    // Log model path for debugging
-    console.log('Using model:', modelPath);
-  }, [modelPath]);
 
   return (
     <div className={`w-full h-[500px] rounded-lg overflow-hidden ${className}`}
-         onMouseEnter={() => setHovered(true)}
-         onMouseLeave={() => setHovered(false)}>
+         onMouseEnter={() => console.log('Mouse enter')}
+         onMouseLeave={() => console.log('Mouse leave')}>
       <Canvas 
         camera={{ position: [0, 0, 5], fov: 45 }}
         className="bg-gradient-to-b from-gray-900 to-black"
       >
         <ambientLight intensity={0.8} />
-        <directionalLight position={[5, 5, 5]} intensity={1} castShadow />
+        <directionalLight position={[5, 5, 5]} intensity={1} />
         
         <Suspense fallback={<Loader />}>
-          <OBJModelLoader 
-            objUrl={modelPath}
-            position={[0, -1, 0]} 
-            rotation={[0, Math.PI / 4, 0]} 
-            scale={0.02} 
-            color={currentColor}
-          />
+          <ShoeBox color={currentColor} />
         </Suspense>
         
         <OrbitControls 

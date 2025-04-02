@@ -1,13 +1,24 @@
-import React, { Suspense, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
+import React, { Suspense, useState, useRef } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
 import OBJModelLoader from './OBJModelLoader';
+import { OrbitControls } from '@react-three/drei';
+import * as THREE from 'three';
 import { Link } from 'wouter';
 
-// Simple loading indicator
+// Simple loading indicator with spinning cube
 function Loader() {
+  const ref = useRef<THREE.Mesh>(null);
+  
+  useFrame(() => {
+    if (ref.current) {
+      ref.current.rotation.x += 0.01;
+      ref.current.rotation.y += 0.01;
+    }
+  });
+  
   return (
-    <mesh>
-      <sphereGeometry args={[0.5, 16, 16]} />
+    <mesh ref={ref}>
+      <boxGeometry args={[1, 1, 1]} />
       <meshStandardMaterial color="white" />
     </mesh>
   );
@@ -64,6 +75,11 @@ const FeaturedModelShowcase: React.FC<FeaturedModelShowcaseProps> = ({
                 rotation={[0, Math.PI / 6, 0]} 
                 scale={0.03} 
                 color="#ffffff"
+              />
+              <OrbitControls 
+                enableZoom={true}
+                enablePan={false}
+                enableRotate={true}
               />
             </Suspense>
           </Canvas>
