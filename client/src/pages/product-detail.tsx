@@ -3,20 +3,24 @@ import { useRoute } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Product } from "@shared/schema";
 import { formatPrice, formatProductImage } from "@/lib/data";
-import { Truck, AlertCircle } from "lucide-react";
+import { Truck, AlertCircle, Eye, Box } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
+import ThreeDProductViewer from "@/components/3d/ThreeDProductViewer";
 
 const ProductDetail = () => {
   const [match, params] = useRoute("/product/:id");
   const id = params?.id ? parseInt(params.id) : null;
   const [selectedColor, setSelectedColor] = useState(0); // 0 = white, 1 = black, 2 = gray
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"3d" | "images">("images");
   const { toast } = useToast();
 
   const availableSizes = ["US 7", "US 7.5", "US 8", "US 8.5", "US 9", "US 9.5", "US 10", "US 10.5", "US 11"];
+  const colorMap = ["#ffffff", "#000000", "#eeeeee"];
 
   const { data: product, isLoading, error } = useQuery<Product>({
     queryKey: [`/api/products/${id}`],
@@ -132,46 +136,84 @@ const ProductDetail = () => {
   return (
     <section className="py-16">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Product Images */}
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <motion.img 
-                src={formatProductImage(product.image)} 
-                alt={product.name}
-                className="w-full h-[300px] object-cover"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5 }}
-              />
-              <motion.img 
-                src={product.hoverImage ? formatProductImage(product.hoverImage) : formatProductImage(product.image)} 
-                alt={`${product.name} Side View`}
-                className="w-full h-[300px] object-cover"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <motion.img 
-                src="https://images.unsplash.com/photo-1600269452121-4f2416e55c28?q=80&w=1965&auto=format&fit=crop&ixlib=rb-4.0.3" 
-                alt={`${product.name} Top View`}
-                className="w-full h-[300px] object-cover"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-              />
-              <motion.img 
-                src="https://images.unsplash.com/photo-1593081891731-fda0877988da?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3" 
-                alt={`${product.name} Detail`}
-                className="w-full h-[300px] object-cover"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.3 }}
-              />
-            </div>
+        <div className="flex justify-end mb-4">
+          <div className="inline-flex items-center rounded-md border border-gray-200 p-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`flex items-center space-x-1 px-3 ${viewMode === 'images' ? 'bg-gray-100' : ''}`}
+              onClick={() => setViewMode('images')}
+            >
+              <Eye className="h-4 w-4" />
+              <span>Images</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`flex items-center space-x-1 px-3 ${viewMode === '3d' ? 'bg-gray-100' : ''}`}
+              onClick={() => setViewMode('3d')}
+            >
+              <Box className="h-4 w-4" />
+              <span>3D View</span>
+            </Button>
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          {/* Product Images or 3D View */}
+          {viewMode === 'images' ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <motion.img 
+                  src={formatProductImage(product.image)} 
+                  alt={product.name}
+                  className="w-full h-[300px] object-cover"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                />
+                <motion.img 
+                  src={product.hoverImage ? formatProductImage(product.hoverImage) : formatProductImage(product.image)} 
+                  alt={`${product.name} Side View`}
+                  className="w-full h-[300px] object-cover"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.1 }}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <motion.img 
+                  src="https://images.unsplash.com/photo-1600269452121-4f2416e55c28?q=80&w=1965&auto=format&fit=crop&ixlib=rb-4.0.3" 
+                  alt={`${product.name} Top View`}
+                  className="w-full h-[300px] object-cover"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                />
+                <motion.img 
+                  src="https://images.unsplash.com/photo-1593081891731-fda0877988da?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3" 
+                  alt={`${product.name} Detail`}
+                  className="w-full h-[300px] object-cover"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                />
+              </div>
+            </div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="bg-[#f5f5f5] rounded-lg overflow-hidden"
+            >
+              <ThreeDProductViewer 
+                productName={product.name}
+                price={formatPrice(product.price)}
+                colors={[colorMap[selectedColor]]}
+              />
+            </motion.div>
+          )}
           
           {/* Product Info */}
           <motion.div
@@ -242,7 +284,7 @@ const ProductDetail = () => {
             <div className="mb-6">
               <p className="mb-4">{product.description || 'The radiance lives on in the Nike Air Force 1 \'07, the basketball original that puts a fresh spin on what you know best: durably stitched overlays, clean finishes and the perfect amount of flash to make you shine.'}</p>
               <ul className="list-disc list-inside space-y-2 text-[#757575]">
-                <li>Shown: White/White</li>
+                <li>Shown: {selectedColor === 0 ? 'White/White' : selectedColor === 1 ? 'Black/Black' : 'Grey/Grey'}</li>
                 <li>Style: 315122-111</li>
               </ul>
             </div>
@@ -251,6 +293,11 @@ const ProductDetail = () => {
             <div className="flex items-center space-x-2 text-sm mb-6">
               <Truck className="h-5 w-5" />
               <p>Free Shipping & Returns</p>
+            </div>
+
+            {/* Created by Attribution */}
+            <div className="text-sm text-gray-500 mt-8 pt-4 border-t border-gray-200">
+              Created by <span className="font-medium">rishiicreates</span>
             </div>
           </motion.div>
         </div>
