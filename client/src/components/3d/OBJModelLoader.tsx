@@ -1,6 +1,8 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { Center, Environment } from '@react-three/drei';
 import * as THREE from 'three';
+import ShoeModel from './ShoeModel';
 
 interface OBJModelLoaderProps {
   objUrl: string;
@@ -19,37 +21,30 @@ const OBJModelLoader: React.FC<OBJModelLoaderProps> = ({
 }) => {
   const groupRef = useRef<THREE.Group>(null);
   
-  // Simple auto-rotation animation
-  useFrame(() => {
+  // Animate the model container if needed
+  useFrame((state) => {
     if (groupRef.current) {
-      groupRef.current.rotation.y += 0.005;
+      // Subtle container movement, most animation is in the ShoeModel
+      const time = state.clock.getElapsedTime();
+      groupRef.current.position.y = position[1] + Math.sin(time * 0.3) * 0.02;
     }
   });
 
-  // Create a simple shoe-like shape as placeholder
-  // This is a temporary solution until we can properly load OBJ files
   return (
     <group
       ref={groupRef}
-      position={[position[0], position[1], position[2]]}
-      rotation={[rotation[0], rotation[1], rotation[2]]}
+      position={position}
+      rotation={rotation}
       scale={[scale, scale, scale]}
     >
-      {/* Shoe base */}
-      <mesh position={[0, 0, 0]}>
-        <boxGeometry args={[2, 0.5, 1]} />
-        <meshStandardMaterial color={color} />
-      </mesh>
-      {/* Shoe front/toe */}
-      <mesh position={[0.8, 0.1, 0]}>
-        <boxGeometry args={[0.7, 0.3, 1]} />
-        <meshStandardMaterial color={color} />
-      </mesh>
-      {/* Shoe back/heel */}
-      <mesh position={[-0.8, 0.3, 0]}>
-        <boxGeometry args={[0.5, 0.7, 1]} />
-        <meshStandardMaterial color={color} />
-      </mesh>
+      <Center>
+        <ShoeModel 
+          color={color} 
+          position={[0, 0, 0]} 
+          rotation={[0, rotation[1], 0]}
+          scale={1} 
+        />
+      </Center>
     </group>
   );
 };

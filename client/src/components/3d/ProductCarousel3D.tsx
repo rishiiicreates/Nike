@@ -1,9 +1,14 @@
-import React, { useState, useRef, Suspense } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import React, { useState, useRef, useEffect } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, Stage, PresentationControls } from '@react-three/drei';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import OBJModelLoader from './OBJModelLoader';
-import * as THREE from 'three';
-// Define Product interface locally to avoid import issues
+import { getModelInfo } from '../../lib/3dAssets';
+import { formatPrice } from '../../lib/data';
+import { Link } from 'wouter';
+
+// Product type definition
 interface Product {
   id: number;
   name: string;
@@ -18,27 +23,44 @@ interface Product {
   rating?: number;
   stock?: number;
 }
-import { formatPrice } from '../../lib/data';
-import { Link } from 'wouter';
-import { MODEL_PATHS, MODEL_SCALES, MODEL_POSITIONS, MODEL_ROTATIONS } from '../../lib/3dAssets';
 
-// Simple loading indicator
-// Simple loading indicator with a spinning cube
+// Loading indicator with Nike-inspired swoosh
 function Loader() {
-  const ref = useRef<THREE.Mesh>(null);
-  
-  useFrame(() => {
-    if (ref.current) {
-      ref.current.rotation.x += 0.01;
-      ref.current.rotation.y += 0.01;
-    }
-  });
-  
   return (
-    <mesh ref={ref}>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="white" />
-    </mesh>
+    <div className="flex justify-center items-center h-full">
+      <div className="w-16 h-16 relative">
+        <svg
+          className="animate-spin"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3"
+            stroke="#000000"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <svg
+            width="12"
+            height="10"
+            viewBox="0 0 12 10"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M1 5.16667L3.5 8.5L11 1.5"
+              stroke="#000000"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -48,187 +70,199 @@ interface ProductCarousel3DProps {
   className?: string;
 }
 
-// Using imported 3D assets
-
 const ProductCarousel3D: React.FC<ProductCarousel3DProps> = ({
   products,
   title = "Featured Products",
-  className = '',
+  className = ""
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const carouselRef = useRef<HTMLDivElement>(null);
-
+  const touchStartX = useRef(0);
+  
+  // Get current product
   const currentProduct = products[currentIndex];
   
-  // Get appropriate model based on product name
-  const getModelPath = (productName: string) => {
-    const modelKey = Object.keys(MODEL_PATHS).find(key => 
-      productName.toLowerCase().includes(key.toLowerCase())
-    );
-    
-    return modelKey ? MODEL_PATHS[modelKey as keyof typeof MODEL_PATHS] : MODEL_PATHS["Default"];
-  };
-
-  const getModelScale = (productName: string) => {
-    const modelKey = Object.keys(MODEL_SCALES).find(key => 
-      productName.toLowerCase().includes(key.toLowerCase())
-    );
-    
-    return modelKey ? MODEL_SCALES[modelKey as keyof typeof MODEL_SCALES] : MODEL_SCALES["Default"];
-  };
-
-  const getModelPosition = (productName: string) => {
-    const modelKey = Object.keys(MODEL_POSITIONS).find(key => 
-      productName.toLowerCase().includes(key.toLowerCase())
-    );
-    
-    return modelKey ? MODEL_POSITIONS[modelKey as keyof typeof MODEL_POSITIONS] : MODEL_POSITIONS["Default"];
-  };
-
-  const getModelRotation = (productName: string) => {
-    const modelKey = Object.keys(MODEL_ROTATIONS).find(key => 
-      productName.toLowerCase().includes(key.toLowerCase())
-    );
-    
-    return modelKey ? MODEL_ROTATIONS[modelKey as keyof typeof MODEL_ROTATIONS] : MODEL_ROTATIONS["Default"];
-  };
-
-  const productName = currentProduct?.name || "";
-  const modelPath = getModelPath(productName);
-  const modelScale = getModelScale(productName);
-  const modelPosition = getModelPosition(productName);
-  const modelRotation = getModelRotation(productName);
-
-  const handleNext = () => {
+  // Navigate to next product
+  const nextProduct = () => {
     if (isTransitioning) return;
+    
     setIsTransitioning(true);
-    setCurrentIndex((prevIndex) => (prevIndex + 1) % products.length);
+    setCurrentIndex((prev) => (prev + 1) % products.length);
+    
+    // Reset transition state after animation completes
     setTimeout(() => setIsTransitioning(false), 500);
   };
-
-  const handlePrev = () => {
+  
+  // Navigate to previous product
+  const prevProduct = () => {
     if (isTransitioning) return;
+    
     setIsTransitioning(true);
-    setCurrentIndex((prevIndex) => (prevIndex - 1 + products.length) % products.length);
+    setCurrentIndex((prev) => (prev - 1 + products.length) % products.length);
+    
+    // Reset transition state after animation completes
     setTimeout(() => setIsTransitioning(false), 500);
   };
-
+  
+  // Handle touch events for mobile swipe
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+  
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const touchEndX = e.changedTouches[0].clientX;
+    const diff = touchStartX.current - touchEndX;
+    
+    // If the swipe distance is significant, navigate
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) {
+        nextProduct();
+      } else {
+        prevProduct();
+      }
+    }
+  };
+  
+  // Get model information based on product name
+  const { path: modelPath, scale, position, rotation } = getModelInfo(currentProduct.name);
+  
+  // Auto-advance carousel every 8 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      nextProduct();
+    }, 8000);
+    
+    return () => clearInterval(timer);
+  }, [currentIndex, products.length]);
+  
   return (
-    <div className={`w-full py-12 ${className}`}>
-      <div className="container mx-auto px-4">
-        <h2 className="text-3xl font-bold mb-8">{title}</h2>
-        
-        <div className="relative" ref={carouselRef}>
-          <div className={`grid grid-cols-1 md:grid-cols-2 gap-8 transition-opacity duration-300 ${isTransitioning ? 'opacity-50' : 'opacity-100'}`}>
-            {/* 3D Model Container */}
-            <div className="h-[500px] bg-gray-100 rounded-xl overflow-hidden">
-              <Canvas 
-                camera={{ position: [0, 0, 5], fov: 45 }}
+    <div className={`w-full ${className}`}>
+      <h2 className="text-3xl font-bold mb-6 text-center">{title}</h2>
+      
+      <div 
+        className="relative w-full h-[500px] bg-gradient-to-b from-gray-100 to-white rounded-xl overflow-hidden shadow-lg" 
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* 3D Product Display */}
+        <div className="absolute inset-0">
+          <Canvas 
+            camera={{ position: [0, 0, 5], fov: 45 }}
+            className="w-full h-full"
+            shadows
+          >
+            <Stage environment="city" intensity={0.5}>
+              <PresentationControls
+                global
+                rotation={[0, 0, 0]}
+                polar={[-Math.PI / 4, Math.PI / 4]}
+                azimuth={[-Math.PI / 4, Math.PI / 4]}
+                config={{ mass: 2, tension: 500 }}
+                snap={{ mass: 4, tension: 250 }}
               >
-                <ambientLight intensity={0.8} />
-                <directionalLight position={[5, 5, 5]} intensity={1} castShadow />
-                
-                <Suspense fallback={<Loader />}>
+                <AnimatePresence>
                   <OBJModelLoader 
+                    key={currentProduct.id}
                     objUrl={modelPath}
-                    position={modelPosition} 
-                    rotation={modelRotation} 
-                    scale={modelScale} 
-                    color={Array.isArray(currentProduct?.colors) && currentProduct?.colors.length > 0 
-                      ? currentProduct.colors[0] 
-                      : "#ffffff"}
+                    position={position}
+                    rotation={rotation}
+                    scale={scale * 1.2}
+                    color={currentProduct.colors[0]}
                   />
-                  <OrbitControls 
-                    enableZoom={true}
-                    enablePan={false}
-                    enableRotate={true}
-                  />
-                </Suspense>
-              </Canvas>
-              
-              <div className="absolute bottom-4 right-4 text-xs text-gray-600">
-                Interactive 3D - Drag to rotate
-              </div>
-            </div>
+                </AnimatePresence>
+              </PresentationControls>
+            </Stage>
             
-            {/* Product Info */}
-            <div className="flex flex-col justify-center p-6">
-              <h3 className="text-2xl font-bold mb-2">{currentProduct?.name}</h3>
-              <p className="text-xl font-medium mb-4">{formatPrice(currentProduct?.price || 0)}</p>
-              <p className="mb-6">{currentProduct?.description || "Experience the next generation of comfort and style with this iconic Nike design."}</p>
-              
-              {currentProduct?.colors && Array.isArray(currentProduct.colors) && currentProduct.colors.length > 0 && (
-                <div className="mb-6">
-                  <p className="text-sm font-medium mb-2">Available Colors:</p>
-                  <div className="flex space-x-2">
-                    {currentProduct.colors.map((color: string, idx: number) => (
-                      <div 
-                        key={idx} 
-                        className="w-6 h-6 rounded-full border border-gray-300" 
-                        style={{ backgroundColor: color }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              <div className="flex space-x-4">
-                <Link href={`/product/${currentProduct?.id}`}>
-                  <a className="bg-black text-white py-3 px-8 rounded-full hover:bg-gray-800 transition">
+            <OrbitControls 
+              enableZoom={false}
+              enablePan={false}
+              enableRotate={true}
+              autoRotate
+              autoRotateSpeed={2}
+            />
+          </Canvas>
+        </div>
+        
+        {/* Product Info Overlay */}
+        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 backdrop-blur-sm p-6 text-white">
+          <motion.div
+            key={currentProduct.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="flex justify-between items-start"
+          >
+            <div>
+              <h3 className="text-2xl font-bold mb-1">{currentProduct.name}</h3>
+              <p className="text-gray-300 mb-2">{currentProduct.description.substring(0, 100)}...</p>
+              <p className="text-xl font-bold">{formatPrice(currentProduct.price)}</p>
+              <div className="mt-3">
+                <Link href={`/product/${currentProduct.id}`}>
+                  <a className="inline-block bg-white text-black px-4 py-2 rounded-full font-medium hover:bg-gray-200 transition-colors">
                     View Details
                   </a>
                 </Link>
-                <button className="border border-black py-3 px-8 rounded-full hover:bg-gray-100 transition">
-                  Add to Cart
-                </button>
-              </div>
-              
-              <div className="mt-8 text-xs text-gray-500">
-                Created by rishiicreates
               </div>
             </div>
-          </div>
-          
-          {/* Navigation Buttons */}
-          <button 
-            className="absolute left-0 top-1/2 transform -translate-y-1/2 -ml-5 bg-white shadow-lg rounded-full p-3 z-10"
-            onClick={handlePrev}
-            disabled={isTransitioning}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          
-          <button 
-            className="absolute right-0 top-1/2 transform -translate-y-1/2 -mr-5 bg-white shadow-lg rounded-full p-3 z-10"
-            onClick={handleNext}
-            disabled={isTransitioning}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-          
-          {/* Pagination Indicators */}
-          <div className="flex justify-center mt-8">
-            {products.map((_, idx) => (
-              <button
-                key={idx}
-                className={`mx-1 w-3 h-3 rounded-full ${
-                  idx === currentIndex ? 'bg-black' : 'bg-gray-300'
-                }`}
-                onClick={() => {
-                  if (!isTransitioning) {
-                    setIsTransitioning(true);
-                    setCurrentIndex(idx);
-                    setTimeout(() => setIsTransitioning(false), 500);
-                  }
-                }}
-              />
-            ))}
-          </div>
+            
+            <div className="flex flex-col space-y-2">
+              <p className="text-sm text-gray-300">Available Colors</p>
+              <div className="flex space-x-2">
+                {currentProduct.colors.map((color, index) => (
+                  <div 
+                    key={index}
+                    className="w-6 h-6 rounded-full border-2 border-white cursor-pointer"
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        </div>
+        
+        {/* Navigation Controls */}
+        <button
+          onClick={prevProduct}
+          className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-30 hover:bg-opacity-50 rounded-full p-2 backdrop-blur-sm"
+          disabled={isTransitioning}
+          aria-label="Previous product"
+        >
+          <ChevronLeft className="h-6 w-6 text-black" />
+        </button>
+        
+        <button
+          onClick={nextProduct}
+          className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-30 hover:bg-opacity-50 rounded-full p-2 backdrop-blur-sm"
+          disabled={isTransitioning}
+          aria-label="Next product"
+        >
+          <ChevronRight className="h-6 w-6 text-black" />
+        </button>
+        
+        {/* Pagination Indicators */}
+        <div className="absolute bottom-32 left-0 right-0 flex justify-center space-x-2">
+          {products.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => {
+                if (!isTransitioning) {
+                  setIsTransitioning(true);
+                  setCurrentIndex(index);
+                  setTimeout(() => setIsTransitioning(false), 500);
+                }
+              }}
+              className={`w-2 h-2 rounded-full transition-all ${
+                index === currentIndex ? 'w-6 bg-white' : 'bg-gray-400'
+              }`}
+              aria-label={`Go to product ${index + 1}`}
+            />
+          ))}
+        </div>
+        
+        {/* Attribution */}
+        <div className="absolute bottom-1 right-2 text-xs text-white opacity-60">
+          Created by rishiicreates
         </div>
       </div>
     </div>
