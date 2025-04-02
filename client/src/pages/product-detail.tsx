@@ -1,15 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRoute } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Product } from "@shared/schema";
 import { formatPrice, formatProductImage } from "@/lib/data";
-import { Truck, AlertCircle, Eye, Box } from "lucide-react";
+import { Truck, AlertCircle, Eye, Box, Rotate3d, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
+import EnhancedProductViewer from "@/components/3d/EnhancedProductViewer";
 import ThreeDProductViewer from "@/components/3d/ThreeDProductViewer";
+import { getModelInfo } from "@/lib/3dAssets";
 
 const ProductDetail = () => {
   const [match, params] = useRoute("/product/:id");
@@ -205,13 +207,28 @@ const ProductDetail = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5 }}
-              className="bg-[#f5f5f5] rounded-lg overflow-hidden"
+              className="bg-gradient-to-b from-gray-100 to-gray-200 rounded-lg overflow-hidden h-[620px]"
             >
-              <ThreeDProductViewer 
-                productName={product.name}
-                price={formatPrice(product.price)}
-                colors={[colorMap[selectedColor]]}
-              />
+              <Suspense fallback={
+                <div className="h-full w-full flex items-center justify-center">
+                  <div className="text-center">
+                    <Loader2 className="h-10 w-10 animate-spin mx-auto mb-4 text-gray-400" />
+                    <p className="text-gray-500">Loading 3D model...</p>
+                  </div>
+                </div>
+              }>
+                <EnhancedProductViewer 
+                  productName={product.name}
+                  price={formatPrice(product.price)}
+                  colors={[colorMap[selectedColor]]}
+                  className="h-full"
+                />
+              </Suspense>
+              
+              <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-md text-sm flex items-center">
+                <Rotate3d className="h-4 w-4 mr-1" /> 
+                <span>Drag to rotate</span>
+              </div>
             </motion.div>
           )}
           
