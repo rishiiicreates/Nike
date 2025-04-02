@@ -1,13 +1,5 @@
 import React, { useState, useRef, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { 
-  Environment, 
-  PresentationControls, 
-  ContactShadows,
-  Html,
-  useProgress,
-  Stage
-} from '@react-three/drei';
 import OBJModelLoader from './OBJModelLoader';
 // Define Product interface locally to avoid import issues
 interface Product {
@@ -28,15 +20,13 @@ import { formatPrice } from '../../lib/data';
 import { Link } from 'wouter';
 import { MODEL_PATHS, MODEL_SCALES, MODEL_POSITIONS, MODEL_ROTATIONS } from '../../lib/3dAssets';
 
-// Loading indicator
+// Simple loading indicator
 function Loader() {
-  const { progress } = useProgress();
   return (
-    <Html center>
-      <div className="text-white bg-black bg-opacity-75 p-4 rounded-md">
-        Loading {progress.toFixed(0)}%
-      </div>
-    </Html>
+    <mesh>
+      <sphereGeometry args={[0.5, 16, 16]} />
+      <meshStandardMaterial color="white" />
+    </mesh>
   );
 }
 
@@ -122,41 +112,21 @@ const ProductCarousel3D: React.FC<ProductCarousel3DProps> = ({
             {/* 3D Model Container */}
             <div className="h-[500px] bg-gray-100 rounded-xl overflow-hidden">
               <Canvas 
-                shadows 
                 camera={{ position: [0, 0, 5], fov: 45 }}
               >
-                <color attach="background" args={['#f0f0f0']} />
-                <ambientLight intensity={0.5} />
-                <spotLight position={[5, 10, 15]} angle={0.15} penumbra={1} intensity={1} castShadow />
+                <ambientLight intensity={0.8} />
+                <directionalLight position={[5, 5, 5]} intensity={1} castShadow />
                 
                 <Suspense fallback={<Loader />}>
-                  <Stage environment="city" intensity={0.5}>
-                    <PresentationControls
-                      global
-                      config={{ mass: 2, tension: 500 }}
-                      snap
-                      rotation={[0, 0, 0]}
-                      polar={[-Math.PI / 4, Math.PI / 4]}
-                      azimuth={[-Math.PI / 4, Math.PI / 4]}
-                    >
-                      <OBJModelLoader 
-                        objUrl={modelPath}
-                        position={modelPosition} 
-                        rotation={modelRotation} 
-                        scale={modelScale} 
-                        color={currentProduct?.colors?.[0] || "#ffffff"}
-                      />
-                    </PresentationControls>
-                  </Stage>
-                  
-                  <ContactShadows 
-                    position={[0, -1.5, 0]} 
-                    opacity={0.4} 
-                    scale={5} 
-                    blur={2} 
+                  <OBJModelLoader 
+                    objUrl={modelPath}
+                    position={modelPosition} 
+                    rotation={modelRotation} 
+                    scale={modelScale} 
+                    color={Array.isArray(currentProduct?.colors) && currentProduct?.colors.length > 0 
+                      ? currentProduct.colors[0] 
+                      : "#ffffff"}
                   />
-                  
-                  <Environment preset="city" />
                 </Suspense>
               </Canvas>
               
@@ -171,7 +141,7 @@ const ProductCarousel3D: React.FC<ProductCarousel3DProps> = ({
               <p className="text-xl font-medium mb-4">{formatPrice(currentProduct?.price || 0)}</p>
               <p className="mb-6">{currentProduct?.description || "Experience the next generation of comfort and style with this iconic Nike design."}</p>
               
-              {currentProduct?.colors && (
+              {currentProduct?.colors && Array.isArray(currentProduct.colors) && currentProduct.colors.length > 0 && (
                 <div className="mb-6">
                   <p className="text-sm font-medium mb-2">Available Colors:</p>
                   <div className="flex space-x-2">

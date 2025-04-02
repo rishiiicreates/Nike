@@ -1,30 +1,16 @@
-import React, { useState, useRef, Suspense } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { 
-  OrbitControls, 
-  Environment, 
-  PresentationControls,
-  ContactShadows,
-  useProgress,
-  Html
-} from '@react-three/drei';
+import React, { useState, Suspense, useEffect } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
 import OBJModelLoader from './OBJModelLoader';
+import { MODEL_PATHS } from '../../lib/3dAssets';
 
-// URL paths to our 3D models
-const MODELS = {
-  "Air Jordan 1": "/uploads_files_3671566_Nike+Air+Jordan+1+Retro+High+OG+Rebellionaire.obj",
-  "Nike Air Max": "/uploads_files_5132423_project+14.obj",
-  "Default": "/uploads_files_5132423_project+14.obj", // Default fallback
-};
-
+// Simple loading indicator
 function Loader() {
-  const { progress } = useProgress();
   return (
-    <Html center>
-      <div className="text-white bg-black bg-opacity-75 p-4 rounded-md">
-        Loading {progress.toFixed(0)}%
-      </div>
-    </Html>
+    <mesh>
+      <sphereGeometry args={[0.5, 16, 16]} />
+      <meshStandardMaterial color="white" />
+    </mesh>
   );
 }
 
@@ -42,69 +28,51 @@ export const EnhancedProductViewer: React.FC<EnhancedProductViewerProps> = ({
   className = '',
 }) => {
   const [currentColor, setCurrentColor] = useState(colors[0]);
+  const [hovered, setHovered] = useState(false);
   
   // Determine which 3D model to use based on product name
   const getModelPath = () => {
-    const modelKey = Object.keys(MODELS).find(key => 
+    const modelKey = Object.keys(MODEL_PATHS).find(key => 
       productName.toLowerCase().includes(key.toLowerCase())
     );
     
-    return modelKey ? MODELS[modelKey as keyof typeof MODELS] : MODELS["Default"];
+    return modelKey ? MODEL_PATHS[modelKey as keyof typeof MODEL_PATHS] : MODEL_PATHS["Default"];
   };
 
   const modelPath = getModelPath();
+  
+  useEffect(() => {
+    // Log model path for debugging
+    console.log('Using model:', modelPath);
+  }, [modelPath]);
 
   return (
-    <div className={`w-full h-[500px] rounded-lg overflow-hidden ${className}`}>
+    <div className={`w-full h-[500px] rounded-lg overflow-hidden ${className}`}
+         onMouseEnter={() => setHovered(true)}
+         onMouseLeave={() => setHovered(false)}>
       <Canvas 
-        shadows 
         camera={{ position: [0, 0, 5], fov: 45 }}
         className="bg-gradient-to-b from-gray-900 to-black"
       >
-        <fog attach="fog" args={['#000', 10, 20]} />
         <ambientLight intensity={0.8} />
-        <directionalLight 
-          position={[5, 5, 5]} 
-          intensity={1} 
-          castShadow 
-          shadow-mapSize-width={1024} 
-          shadow-mapSize-height={1024} 
-        />
-        <spotLight position={[-5, 5, 5]} angle={0.15} penumbra={1} intensity={1} castShadow />
+        <directionalLight position={[5, 5, 5]} intensity={1} castShadow />
         
         <Suspense fallback={<Loader />}>
-          <PresentationControls
-            global
-            zoom={0.8}
-            rotation={[0, 0, 0]}
-            polar={[-Math.PI / 4, Math.PI / 4]}
-            azimuth={[-Math.PI / 4, Math.PI / 4]}
-          >
-            <OBJModelLoader 
-              objUrl={modelPath}
-              position={[0, -1, 0]} 
-              rotation={[0, Math.PI / 4, 0]} 
-              scale={0.02} 
-              color={currentColor}
-            />
-          </PresentationControls>
-          
-          <ContactShadows 
-            position={[0, -1.5, 0]} 
-            opacity={0.4} 
-            scale={5} 
-            blur={2.4} 
+          <OBJModelLoader 
+            objUrl={modelPath}
+            position={[0, -1, 0]} 
+            rotation={[0, Math.PI / 4, 0]} 
+            scale={0.02} 
+            color={currentColor}
           />
-          
-          <Environment preset="city" />
         </Suspense>
         
         <OrbitControls 
           enableZoom={true}
-          enablePan={true}
+          enablePan={false}
           enableRotate={true}
-          minDistance={2}
-          maxDistance={10}
+          minDistance={3}
+          maxDistance={8}
         />
       </Canvas>
       

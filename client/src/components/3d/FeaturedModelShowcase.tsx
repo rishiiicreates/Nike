@@ -1,25 +1,15 @@
 import React, { Suspense, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { 
-  Environment, 
-  Float, 
-  PresentationControls, 
-  ContactShadows, 
-  Html,
-  useProgress
-} from '@react-three/drei';
 import OBJModelLoader from './OBJModelLoader';
 import { Link } from 'wouter';
 
-// Loading indicator
+// Simple loading indicator
 function Loader() {
-  const { progress } = useProgress();
   return (
-    <Html center>
-      <div className="text-white bg-black bg-opacity-75 p-4 rounded-md">
-        Loading {progress.toFixed(0)}%
-      </div>
-    </Html>
+    <mesh>
+      <sphereGeometry args={[0.5, 16, 16]} />
+      <meshStandardMaterial color="white" />
+    </mesh>
   );
 }
 
@@ -43,6 +33,9 @@ const FeaturedModelShowcase: React.FC<FeaturedModelShowcaseProps> = ({
   // Rotation animation speed for the model
   const [hovered, setHovered] = useState(false);
   
+  // State for dynamic quality adjustment based on performance
+  const [quality, setQuality] = useState<'low' | 'medium' | 'high'>('high');
+  
   return (
     <section className={`w-full py-16 ${bgColor} text-white relative overflow-hidden`}>
       <div className="container mx-auto px-4 flex flex-col lg:flex-row items-center">
@@ -56,50 +49,22 @@ const FeaturedModelShowcase: React.FC<FeaturedModelShowcaseProps> = ({
           </Link>
         </div>
         
-        <div className="lg:w-1/2 h-[500px] z-10">
+        <div className="lg:w-1/2 h-[500px] z-10 relative">
           <Canvas 
-            shadows 
             camera={{ position: [0, 0, 5], fov: 45 }}
             className="bg-transparent"
           >
-            <ambientLight intensity={0.5} />
-            <spotLight position={[5, 10, 15]} angle={0.15} penumbra={1} intensity={1.5} castShadow />
-            <directionalLight position={[-5, 5, -5]} intensity={0.5} />
+            <ambientLight intensity={0.8} />
+            <directionalLight position={[5, 5, 5]} intensity={1} castShadow />
             
             <Suspense fallback={<Loader />}>
-              <PresentationControls
-                global
-                config={{ mass: 2, tension: 500 }}
-                snap={{ mass: 4, tension: 300 }}
-                rotation={[0, 0, 0]}
-                polar={[-Math.PI / 4, Math.PI / 4]}
-                azimuth={[-Math.PI / 4, Math.PI / 4]}
-              >
-                <Float
-                  speed={hovered ? 3 : 1}
-                  rotationIntensity={hovered ? 0.4 : 0.2}
-                  floatIntensity={hovered ? 0.4 : 0.2}
-                  onPointerOver={() => setHovered(true)}
-                  onPointerOut={() => setHovered(false)}
-                >
-                  <OBJModelLoader 
-                    objUrl={modelPath}
-                    position={[0, -0.5, 0]} 
-                    rotation={[0, Math.PI / 6, 0]} 
-                    scale={0.03} 
-                    color="#ffffff"
-                  />
-                </Float>
-              </PresentationControls>
-              
-              <ContactShadows 
-                position={[0, -1.5, 0]} 
-                opacity={0.5} 
-                scale={10} 
-                blur={2} 
+              <OBJModelLoader 
+                objUrl={modelPath}
+                position={[0, -0.5, 0]} 
+                rotation={[0, Math.PI / 6, 0]} 
+                scale={0.03} 
+                color="#ffffff"
               />
-              
-              <Environment preset="sunset" />
             </Suspense>
           </Canvas>
         </div>

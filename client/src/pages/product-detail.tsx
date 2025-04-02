@@ -1,17 +1,18 @@
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect } from "react";
 import { useRoute } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Product } from "@shared/schema";
 import { formatPrice, formatProductImage } from "@/lib/data";
-import { Truck, AlertCircle, Eye, Box, Rotate3d, Loader2 } from "lucide-react";
+import { Truck, AlertCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import EnhancedProductViewer from "@/components/3d/EnhancedProductViewer";
-import ThreeDProductViewer from "@/components/3d/ThreeDProductViewer";
-import { getModelInfo } from "@/lib/3dAssets";
+// Temporarily disabled 3D components
+// import EnhancedProductViewer from "@/components/3d/EnhancedProductViewer";
+// import ThreeDProductViewer from "@/components/3d/ThreeDProductViewer";
+// import { getModelInfo } from "@/lib/3dAssets";
 
 const ProductDetail = () => {
   const [match, params] = useRoute("/product/:id");
@@ -138,99 +139,48 @@ const ProductDetail = () => {
   return (
     <section className="py-16">
       <div className="container mx-auto px-4">
-        <div className="flex justify-end mb-4">
-          <div className="inline-flex items-center rounded-md border border-gray-200 p-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`flex items-center space-x-1 px-3 ${viewMode === 'images' ? 'bg-gray-100' : ''}`}
-              onClick={() => setViewMode('images')}
-            >
-              <Eye className="h-4 w-4" />
-              <span>Images</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`flex items-center space-x-1 px-3 ${viewMode === '3d' ? 'bg-gray-100' : ''}`}
-              onClick={() => setViewMode('3d')}
-            >
-              <Box className="h-4 w-4" />
-              <span>3D View</span>
-            </Button>
-          </div>
-        </div>
+        {/* View mode toggle removed temporarily */}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Product Images or 3D View */}
-          {viewMode === 'images' ? (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <motion.img 
-                  src={formatProductImage(product.image)} 
-                  alt={product.name}
-                  className="w-full h-[300px] object-cover"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5 }}
-                />
-                <motion.img 
-                  src={product.hoverImage ? formatProductImage(product.hoverImage) : formatProductImage(product.image)} 
-                  alt={`${product.name} Side View`}
-                  className="w-full h-[300px] object-cover"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5, delay: 0.1 }}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <motion.img 
-                  src="https://images.unsplash.com/photo-1600269452121-4f2416e55c28?q=80&w=1965&auto=format&fit=crop&ixlib=rb-4.0.3" 
-                  alt={`${product.name} Top View`}
-                  className="w-full h-[300px] object-cover"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5, delay: 0.2 }}
-                />
-                <motion.img 
-                  src="https://images.unsplash.com/photo-1593081891731-fda0877988da?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3" 
-                  alt={`${product.name} Detail`}
-                  className="w-full h-[300px] object-cover"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5, delay: 0.3 }}
-                />
-              </div>
+          {/* Product Images */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <motion.img 
+                src={formatProductImage(product.image)} 
+                alt={product.name}
+                className="w-full h-[300px] object-cover"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+              />
+              <motion.img 
+                src={product.hoverImage ? formatProductImage(product.hoverImage) : formatProductImage(product.image)} 
+                alt={`${product.name} Side View`}
+                className="w-full h-[300px] object-cover"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+              />
             </div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-              className="bg-gradient-to-b from-gray-100 to-gray-200 rounded-lg overflow-hidden h-[620px]"
-            >
-              <Suspense fallback={
-                <div className="h-full w-full flex items-center justify-center">
-                  <div className="text-center">
-                    <Loader2 className="h-10 w-10 animate-spin mx-auto mb-4 text-gray-400" />
-                    <p className="text-gray-500">Loading 3D model...</p>
-                  </div>
-                </div>
-              }>
-                <EnhancedProductViewer 
-                  productName={product.name}
-                  price={formatPrice(product.price)}
-                  colors={[colorMap[selectedColor]]}
-                  className="h-full"
-                />
-              </Suspense>
-              
-              <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-md text-sm flex items-center">
-                <Rotate3d className="h-4 w-4 mr-1" /> 
-                <span>Drag to rotate</span>
-              </div>
-            </motion.div>
-          )}
+            <div className="grid grid-cols-2 gap-4">
+              <motion.img 
+                src="https://images.unsplash.com/photo-1600269452121-4f2416e55c28?q=80&w=1965&auto=format&fit=crop&ixlib=rb-4.0.3" 
+                alt={`${product.name} Top View`}
+                className="w-full h-[300px] object-cover"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+              />
+              <motion.img 
+                src="https://images.unsplash.com/photo-1593081891731-fda0877988da?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3" 
+                alt={`${product.name} Detail`}
+                className="w-full h-[300px] object-cover"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+              />
+            </div>
+          </div>
           
           {/* Product Info */}
           <motion.div
